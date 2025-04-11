@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .status {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .ok {
+            color: green;
+        }
+        .lost {
+            color: red;
+        }
+        #variables {
+            background-color: rgb(131, 131, 131);
+            margin: 5px;
+            padding: 5px;
+        }
+        #variables>div {
+            display: grid;                              
+            grid-template-columns: repeat(5, 1fr);      
+        }
+
+        #variables>div>div {
+            margin: 1px;
+            padding: 5px;
+            background-color: rgb(238, 238, 238);
+        }
+        #table_header {
+            background-color: rgb(0, 0, 0);
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+             
+    </style>
+</head>
+
+<body>
+    <h1>Connection Status</h1>
+    <div class="status" id="status">Checking...</div>
+    <hr>
+    <div id="variables"> 
+        <div id="table_header">
+            <div>name</div>
+            <div>type</div>
+            <div>min_val</div>
+            <div>max_val</div>
+            <div>value</div>
+        </div>
+    </div>
+    <div id="res_raw"></div>
+    <script>
+
+        const clear_child = (parent_element) => {
+            let count = parent_element.children.length;
+            for (let c = 0; c < count-1; c++ ) {
+                const ch_el =  parent_element.children[1];
+                parent_element.removeChild(ch_el);
+            };
+        };
+
+        const paste_child = (parent_element, chil_elements_arr) => {
+            chil_elements_arr.forEach(element => {
+
+                const new_name = document.createElement("div");
+                new_name.textContent = element.name;
+                const new_type = document.createElement("div");
+                new_type.textContent = element.type;
+                const new_min = document.createElement("div");
+                new_min.textContent = element.min_val;
+                const new_max = document.createElement("div");
+                new_max.textContent = element.max_val;
+
+                const new_input = document.createElement("input");
+                new_input.value = element.value;
+                const new_val = document.createElement("div");
+                new_val.appendChild(new_input);
+
+                const new_row = document.createElement("div");
+                
+                new_row.appendChild(new_name);
+                new_row.appendChild(new_type);
+                new_row.appendChild(new_min);
+                new_row.appendChild(new_max);
+                new_row.appendChild(new_val);
+
+                const new_row_x = parent_element.appendChild(new_row);
+
+            });
+        };
+
+        const load_local_copy = () => {
+                const local_copy = JSON.parse(localStorage.getItem("params"));
+                const parent = document.getElementById('variables');
+                
+                if (local_copy) {
+                    clear_child(parent);
+                    paste_child(parent,local_copy.params);
+                    console.log("last local data loaded");
+                } else {
+                    console.log("no local data");
+                };
+                
+        };
+        load_local_copy();
+        async function checkConnection() {
+            let serverResponse = "err";
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/olexiip/test_resp/refs/heads/main/README.md'); /* адреса api */
+                if (response.ok) {
+                    serverResponse = await response.text();
+                    document.getElementById('status').textContent = 'Connection is OK';
+                    document.getElementById('status').className = 'status ok';
+                    document.getElementById('res_raw').textContent = `Server Response: ${serverResponse}`;
+                    localStorage.setItem("params", serverResponse);
+                    const resp_obj = JSON.parse(serverResponse);
+                    const parent = document.getElementById('variables');
+                    clear_child(parent);
+                    paste_child(parent,resp_obj.params);
+                } else {
+                    throw new Error("some_error");
+                };
+            } catch (error) {
+                document.getElementById('status').textContent = 'Connection LOST';
+                document.getElementById('status').className = 'status lost';
+                document.getElementById('res_raw').textContent = `err`;
+            };
+        };
+
+        setInterval(checkConnection, 1000);
+    </script>
+</body>
+</html>
